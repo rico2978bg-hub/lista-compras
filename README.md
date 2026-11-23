@@ -6,7 +6,11 @@ A lista de compras da família, feita em um único arquivo HTML: HTML, CSS e Jav
 - Marca itens como comprados (ficam riscados) e remove itens com o ×.
 - Guarda um histórico de quantas vezes cada item foi comprado. Desmarcar um item desfaz a contagem.
 - Sugere até 8 dos itens mais comprados que não estão na lista. Um clique adiciona o item de volta.
-- Monta um cardápio simples com os itens da lista e mostra o que falta para cada prato.
+- Monta um cardápio simples com os itens da lista e mostra o que falta para cada prato. Um toque adiciona o que falta.
+- Categorias coloridas (frutas, padaria, limpeza…) abrem uma gaveta para adicionar os itens mais comuns com um toque.
+- Visual de aplicativo de celular, com menu embaixo (Início, Lista e Cardápio) e abas Comprar / Comprados / Todos.
+
+Ícones: [Fluent Emoji 3D](https://github.com/microsoft/fluentui-emoji), da Microsoft (licença MIT). Sem internet, o app usa os emojis comuns do sistema.
 
 ## Como usar
 
