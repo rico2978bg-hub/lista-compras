@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lista de compras</title>
+<style>
+  :root {
+    --bg: #f4f6f5; --card: #fff; --text: #1c2421; --muted: #6b7570; --line: #e5e9e7;
+    --accent: #2f8a5e; --accent-soft: #e6f3ec; --danger: #d24b4b; --warn: #b26b00;
+    --radius: 16px; --shadow: 0 1px 2px rgba(20, 30, 25, .05), 0 6px 20px rgba(20, 30, 25, .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #101412; --card: #191f1c; --text: #e7ece9; --muted: #95a19b; --line: #29312d;
+            --accent: #4cc38a; --accent-soft: #1d3329; --warn: #e3a54a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 32px 16px 48px; }
+  header { margin-bottom: 20px; }
+  h1 { font-size: 1.75rem; margin: 0; letter-spacing: -.02em; }
+  .sub { color: var(--muted); margin: 4px 0 0; }
+  h2 { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 12px; }
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px; }
+  form { display: flex; gap: 8px; }
+  input[type=text] { flex: 1; min-width: 0; padding: 12px 14px; font: inherit; color: inherit; background: var(--bg);
+                     border: 1px solid var(--line); border-radius: 12px; outline: none; }
+  input[type=text]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .btn { padding: 12px 18px; font: inherit; font-weight: 600; color: #fff; background: var(--accent); border: 0; border-radius: 12px; cursor: pointer; }
+  .btn:hover { filter: brightness(1.08); }
+  #msg { color: var(--danger); font-size: .9rem; margin: 8px 0 0; min-height: 0; }
+  #msg:empty { display: none; }
+  ul { list-style: none; padding: 0; margin: 12px 0 0; }
+  li { display: flex; align-items: center; gap: 8px; padding: 10px 4px; border-top: 1px solid var(--line); }
+  li:first-child { border-top: 0; }
+  li label { flex: 1; display: flex; gap: 12px; align-items: center; cursor: pointer; }
+  li input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--accent); cursor: pointer; }
+  li.comprado label span { text-decoration: line-through; color: var(--muted); }
+  .remover { width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--muted); font-size: 1.3rem; line-height: 1; cursor: pointer; }
+  .remover:hover, .remover:focus-visible { background: #d24b4b1a; color: var(--danger); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button { padding: 6px 14px; font: inherit; font-size: .95rem; color: var(--accent); background: var(--accent-soft); border: 0; border-radius: 999px; cursor: pointer; }
+  .chips button:hover { filter: brightness(.96); }
+  .vazio { color: var(--muted); font-size: .95rem; }
+  li.vazio { justify-content: center; padding: 16px 0; }
+  #cardapio p { margin: 0; padding: 12px 0; border-top: 1px solid var(--line); }
+  #cardapio p:first-child { border-top: 0; padding-top: 0; }
+  #cardapio small { display: block; color: var(--muted); }
+  .falta { color: var(--warn); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Lista de compras</h1>
+    <p class="sub" id="contagem"></p>
+  </header>
+
+  <section class="card">
+    <form id="form">
+      <input id="novo" type="text" placeholder="Adicionar item, ex.: arroz" maxlength="60" aria-label="Novo item" autocomplete="off">
+      <button class="btn">Adicionar</button>
+    </form>
+    <p id="msg" role="status"></p>
+    <ul id="lista"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Sugestões do histórico</h2>
+    <div id="sugestoes" class="chips"></div>
+  </section>
+
+  <section class="card">
+    <h2>Cardápio com o que está na lista</h2>
+    <div id="cardapio"></div>
+  </section>
+</main>
+
+<script>
+const CHAVE_LISTA = "compras_lista";
+const CHAVE_HIST = "compras_historico";
+
+// Dados corrompidos no localStorage não podem travar o app.
+function ler(chave, padrao) {
+  try { return JSON.parse(localStorage.getItem(chave)) ?? padrao; } catch { return padrao; }
+}
+const ehObjeto = v => v !== null && typeof v === "object" && !Array.isArray(v);
+
+let itens = ler(CHAVE_LISTA, []);
+if (!Array.isArray(itens)) itens = [];
+let historico = ler(CHAVE_HIST, {}); // { "arroz": 3, ... } chave sempre normalizada
+if (!ehObjeto(historico)) historico = {};
+
+const limpar = s => String(s).trim().replace(/\s+/g, " ");
+const norm = s => limpar(s).toLowerCase();
+const capitalizar = s => s.charAt(0).toUpperCase() + s.slice(1);
+const msg = document.getElementById("msg");
+
+function salvar() {
+  try {
+    localStorage.setItem(CHAVE_LISTA, JSON.stringify(itens));
+    localStorage.setItem(CHAVE_HIST, JSON.stringify(historico));
+  } catch {
+    msg.textContent = "Não consegui salvar no navegador (armazenamento cheio ou bloqueado).";
+  }
+}
+
+function adicionar(texto) {
+  const nome = limpar(texto);
+  if (!nome) return "Digite um item.";
+  if (itens.some(i => norm(i.nome) === norm(nome))) return `"${nome}" já está na lista.`;
+  itens.push({ nome, comprado: false });
+  salvar(); render();
+  return "";
+}
+
+function marcar(indice, comprado) {
+  const item = itens[indice];
+  if (!item || item.comprado === comprado) return;
+  item.comprado = comprado;
+  // Desmarcar desfaz a compra, senão marcar/desmarcar repetido infla o histórico.
+  const k = norm(item.nome);
+  historico[k] = (historico[k] || 0) + (comprado ? 1 : -1);
+  if (historico[k] <= 0) delete historico[k];
+  salvar(); render();
+}
+
+function remover(indice) {
+  itens.splice(indice, 1);
+  salvar(); render();
+}
+
+function sugestoes() {
+  const naLista = new Set(itens.map(i => norm(i.nome)));
+  return Object.entries(historico)
+    .filter(([k]) => !naLista.has(k))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([k]) => capitalizar(k));
+}
+
+function render() {
+  const comprados = itens.filter(i => i.comprado).length;
+  document.getElementById("contagem").textContent = itens.length
+    ? `${itens.length} ${itens.length === 1 ? "item" : "itens"} · ${comprados} ${comprados === 1 ? "comprado" : "comprados"}`
+    : "Nada na lista ainda";
+  const ul = document.getElementById("lista");
+  ul.replaceChildren();
+  if (!itens.length) {
+    const li = document.createElement("li");
+    li.className = "vazio";
+    li.textContent = "A lista está vazia.";
+    ul.append(li);
+  }
+  itens.forEach((item, i) => {
+    const li = document.createElement("li");
+    if (item.comprado) li.className = "comprado";
+    const label = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = item.comprado;
+    cb.addEventListener("change", () => marcar(i, cb.checked));
+    const span = document.createElement("span");
+    span.textContent = item.nome;
+    label.append(cb, span);
+    const x = document.createElement("button");
+    x.className = "remover";
+    x.textContent = "×";
+    x.setAttribute("aria-label", `Remover ${item.nome}`);
+    x.addEventListener("click", () => remover(i));
+    li.append(label, x);
+    ul.append(li);
+  });
+
+  const box = document.getElementById("sugestoes");
+  box.replaceChildren();
+  const lista = sugestoes();
+  if (!lista.length) {
+    box.innerHTML = '<span class="vazio">Marque itens como comprados para gerar sugestões.</span>';
+  }
+  for (const nome of lista) {
+    const b = document.createElement("button");
+    b.textContent = "+ " + nome;
+    b.addEventListener("click", () => { msg.textContent = adicionar(nome); });
+    box.append(b);
+  }
+  renderCardapio();
+}
+
+document.getElementById("form").addEventListener("submit", e => {
+  e.preventDefault();
+  const campo = document.getElementById("novo");
+  msg.textContent = adicionar(campo.value);
+  if (!msg.textContent) campo.value = "";
+  campo.focus();
+});
+
+// Cardápio sem IA: pratos simples, ranqueados por quantos ingredientes já estão na lista.
+const RECEITAS = [
+  ["Arroz, feijão e bife", ["arroz", "feijao", "carne"]],
+  ["Frango grelhado com salada", ["frango", "alface", "tomate"]],
+  ["Macarrão à bolonhesa", ["macarrao", "carne", "tomate", "cebola"]],
+  ["Omelete de legumes", ["ovo", "tomate", "cebola"]],
+  ["Strogonoff de frango", ["frango", "creme de leite", "arroz"]],
+  ["Sopa de legumes", ["batata", "cenoura", "cebola"]],
+  ["Peixe assado com batatas", ["peixe", "batata"]],
+  ["Feijoada simples", ["feijao", "linguica", "arroz"]],
+  ["Panqueca de carne", ["farinha", "leite", "ovo", "carne"]],
+  ["Escondidinho de carne", ["batata", "carne", "queijo"]],
+  ["Sanduíche natural", ["pao", "frango", "alface"]],
+  ["Cuscuz com ovo", ["cuscuz", "ovo"]],
+];
+const semAcento = s => norm(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+function cardapio() {
+  const naLista = itens.map(i => semAcento(i.nome));
+  return RECEITAS
+    .map(([prato, ingr]) => {
+      const tem = ingr.filter(x => naLista.some(n => n.includes(x)));
+      return { prato, tem, falta: ingr.filter(x => !tem.includes(x)) };
+    })
+    .filter(r => r.tem.length)
+    .sort((a, b) => b.tem.length - a.tem.length || a.falta.length - b.falta.length)
+    .slice(0, 3);
+}
+
+function renderCardapio() {
+  const box = document.getElementById("cardapio");
+  box.replaceChildren();
+  const pratos = cardapio();
+  if (!pratos.length) {
+    box.innerHTML = '<span class="vazio">Adicione itens como arroz, feijão, frango ou ovos para ver ideias de pratos.</span>';
+    return;
+  }
+  for (const r of pratos) {
+    const p = document.createElement("p");
+    const b = document.createElement("strong");
+    b.textContent = r.prato;
+    const tem = document.createElement("small");
+    tem.textContent = `Tem: ${r.tem.join(", ")}`;
+    p.append(b, tem);
+    if (r.falta.length) {
+      const f = document.createElement("small");
+      f.className = "falta";
+      f.textContent = `Falta: ${r.falta.join(", ")}`;
+      p.append(f);
+    }
+    box.append(p);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
