@@ -121,7 +121,24 @@
   .itens li { display: flex; align-items: center; gap: 12px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
   .itens li.anima { animation: entra .4s cubic-bezier(.2, .8, .2, 1.3); }
   @keyframes entra { from { opacity: 0; transform: translateX(-10px); } }
-  .itens label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .item-corpo { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+  .item-corpo:focus-visible { outline: 3px solid #1e9e5755; outline-offset: 4px; border-radius: 12px; }
+  .dica-lista { margin: 0 4px 4px; color: var(--muted); font-size: .76rem; }
+  .cat-outro { background: #fff; border: 2px dashed #cfe0d5; color: var(--green-d); }
+  .campo { display: block; margin-bottom: 12px; }
+  .campo > span, .campo-rot { display: block; margin: 0 0 6px 4px; color: var(--muted); font-size: .8rem; font-weight: 600; }
+  .campo input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 14px; outline: none; font: inherit; background: #f6f9f7; }
+  .campo input:focus { border-color: var(--green); background: #fff; }
+  .campos2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 10px; }
+  .ed-cats { display: flex; flex-wrap: wrap; gap: 6px; }
+  .ed-cats label { cursor: pointer; }
+  .ed-cats input { position: absolute; opacity: 0; pointer-events: none; }
+  .ed-cats span { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px 4px 5px; border: 2px solid transparent; border-radius: 99px;
+                  background: var(--c); font-size: .74rem; font-weight: 600; transition: all .15s; }
+  .ed-cats input:checked + span { border-color: var(--green); box-shadow: 0 4px 10px -6px var(--green); }
+  .ed-cats input:focus-visible + span { outline: 3px solid #1e9e5755; }
+  .btn-remover { width: 100%; margin-top: 8px; padding: 12px; border: 0; border-radius: 16px; background: #fef2f2; color: var(--red); font-weight: 700; cursor: pointer; }
+  .btn-remover[hidden] { display: none; }
   .check { appearance: none; flex: none; width: 24px; height: 24px; margin: 0; border: 2px solid #c9d6ce; border-radius: 8px; cursor: pointer;
            display: grid; place-items: center; transition: background .15s, border-color .15s; }
   .check::after { content: ""; width: 6px; height: 11px; margin-top: -2px; border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg) scale(0); transition: transform .2s cubic-bezier(.2, .8, .2, 1.5); }
@@ -250,6 +267,7 @@
       <button role="tab" data-f="comprados">Comprados</button>
       <button role="tab" data-f="todos">Todos</button>
     </div>
+    <p class="dica-lista">Toque no item para pôr marca, tipo e quantidade.</p>
     <ul class="itens" id="lista"></ul>
   </section>
 
@@ -279,6 +297,27 @@
     <div class="sheet-cab"><span id="sheet-ic"></span><h2 id="sheet-tit"></h2><button class="fechar" data-fechar aria-label="Fechar">×</button></div>
     <div class="opcoes" id="sheet-opcoes"></div>
     <button class="btn-verde" data-fechar>Pronto</button>
+  </div>
+</div>
+
+<div class="sheet" id="editor" hidden>
+  <div class="sheet-fundo" data-fechar-editor></div>
+  <div class="sheet-painel" role="dialog" aria-modal="true" aria-labelledby="editor-tit">
+    <div class="pegador"></div>
+    <div class="sheet-cab"><span id="editor-ic"></span><h2 id="editor-tit">Novo produto</h2><button class="fechar" data-fechar-editor type="button" aria-label="Fechar">×</button></div>
+    <form id="form-editor">
+      <label class="campo"><span>Produto</span><input id="ed-nome" maxlength="60" placeholder="Ex.: liquidificador, leite, ração" required autocomplete="off"></label>
+      <div class="campos2">
+        <label class="campo"><span>Marca</span><input id="ed-marca" maxlength="40" placeholder="Ex.: Philips" autocomplete="off"></label>
+        <label class="campo"><span>Quantidade</span><input id="ed-qtd" maxlength="20" placeholder="Ex.: 2, 1 kg" autocomplete="off"></label>
+      </div>
+      <label class="campo"><span>Tipo / especificação</span><input id="ed-tipo" maxlength="60" placeholder="Ex.: 110 V, 600 W, integral, sem lactose" autocomplete="off"></label>
+      <span class="campo-rot">Categoria</span>
+      <div class="ed-cats" id="ed-cats"></div>
+      <p class="msg" id="ed-msg" role="status"></p>
+      <button class="btn-verde">Salvar</button>
+      <button class="btn-remover" id="ed-remover" type="button">Remover da lista</button>
+    </form>
   </div>
 </div>
 
@@ -332,11 +371,19 @@ const CATEGORIAS = {
   "Bebidas":           { e: "🧃", c: "#fff7d1", comuns: ["Água", "Suco", "Refrigerante", "Cerveja", "Vinho"] },
   "Limpeza":           { e: "🧽", c: "#e3f4fd", comuns: ["Detergente", "Sabão em pó", "Água sanitária", "Esponja", "Vassoura"] },
   "Higiene":           { e: "🧴", c: "#fce9f5", comuns: ["Papel higiênico", "Sabonete", "Shampoo", "Creme dental", "Escova de dente"] },
+  "Casa & Eletro":     { e: "🔌", c: "#e8ecfb", comuns: ["Liquidificador", "Lâmpada", "Pilha", "Panela", "Ventilador", "Extensão", "Air fryer", "Cafeteira"] },
+  "Pet":               { e: "🐶", c: "#fdeedd", comuns: ["Ração", "Areia de gato", "Petisco", "Tapete higiênico"] },
   "Outros":            { e: "🛍️", c: "#eef2ef", comuns: [] },
 };
 
 // Palavra-chave (sem acento) -> emoji e categoria. Os mais específicos vêm antes.
 const PALAVRAS = [
+  ["liquidificador", "🔌", "Casa & Eletro"], ["batedeira", "🔌", "Casa & Eletro"], ["cafeteira", "🔌", "Casa & Eletro"],
+  ["air fryer", "🔌", "Casa & Eletro"], ["airfryer", "🔌", "Casa & Eletro"], ["micro", "🔌", "Casa & Eletro"], ["ventilador", "🔌", "Casa & Eletro"],
+  ["extensao", "🔌", "Casa & Eletro"], ["ferro de passar", "🔌", "Casa & Eletro"], ["lampada", "💡", "Casa & Eletro"], ["pilha", "🔋", "Casa & Eletro"],
+  ["bateria", "🔋", "Casa & Eletro"], ["panela", "🍳", "Casa & Eletro"], ["frigideira", "🍳", "Casa & Eletro"], ["televisao", "📺", "Casa & Eletro"],
+  ["sofa", "🛋️", "Casa & Eletro"], ["balde", "🪣", "Casa & Eletro"], ["vaso", "🪴", "Casa & Eletro"],
+  ["racao", "🐾", "Pet"], ["areia de gato", "🐱", "Pet"], ["petisco", "🐶", "Pet"], ["tapete higienico", "🐾", "Pet"],
   ["creme dental", "🪥", "Higiene"], ["escova", "🪥", "Higiene"], ["papel", "🧻", "Higiene"], ["sabonete", "🧼", "Higiene"],
   ["shampoo", "🧴", "Higiene"], ["desodorante", "🧴", "Higiene"],
   ["agua sanitaria", "🧴", "Limpeza"], ["sabao", "🧼", "Limpeza"], ["detergente", "🧴", "Limpeza"], ["esponja", "🧽", "Limpeza"],
@@ -361,8 +408,15 @@ const PALAVRAS = [
 function info(nome) {
   const n = semAcento(nome);
   const p = PALAVRAS.find(([k]) => n.includes(k));
-  return p ? { e: p[1], cat: p[2] } : { e: "🛍️", cat: "Outros" };
+  return p ? { e: p[1], cat: p[2], achou: true } : { e: "🛍️", cat: "Outros", achou: false };
 }
+// Categoria escolhida pelo usuário vence a automática; sem emoji próprio, usa o da categoria.
+function visual(item) {
+  const auto = info(item.nome);
+  const cat = CATEGORIAS[item.cat] ? item.cat : auto.cat;
+  return { e: auto.achou ? auto.e : CATEGORIAS[cat].e, cat };
+}
+const detalhes = item => [item.marca, item.tipo, item.qtd && `Qtd: ${item.qtd}`].filter(Boolean).join(" · ");
 
 function salvar() {
   try {
@@ -373,15 +427,32 @@ function salvar() {
   }
 }
 
-function adicionar(texto) {
-  const nome = capitalizar(limpar(texto));
-  if (!nome) return "Digite um item.";
-  if (itens.some(i => norm(i.nome) === norm(nome))) return `"${nome}" já está na lista.`;
-  destaque = { nome, comprado: false };
-  itens.push(destaque);
+// Cria (alvo = null) ou edita um item. Devolve "" se deu certo, ou a mensagem de erro.
+function salvarItem(alvo, dados) {
+  const nome = capitalizar(limpar(dados.nome || ""));
+  if (!nome) return "Digite o nome do produto.";
+  const extra = {};
+  for (const campo of ["marca", "tipo", "qtd"]) { const v = limpar(dados[campo] || ""); if (v) extra[campo] = v; }
+  if (CATEGORIAS[dados.cat] && dados.cat !== info(nome).cat) extra.cat = dados.cat;
+  // Mesmo produto com marcas diferentes pode (ex.: leite Italac e leite Ninho); igual nas duas coisas, não.
+  const repetido = itens.find(i => i !== alvo && norm(i.nome) === norm(nome) && norm(i.marca || "") === norm(extra.marca || ""));
+  if (repetido) return `"${[nome, extra.marca].filter(Boolean).join(" ")}" já está na lista.`;
+  if (alvo) {
+    if (alvo.comprado && norm(alvo.nome) !== norm(nome)) { // renomeou algo já comprado: leva a contagem junto
+      const antes = norm(alvo.nome);
+      if (--historico[antes] <= 0) delete historico[antes];
+      historico[norm(nome)] = (historico[norm(nome)] || 0) + 1;
+    }
+    for (const campo of ["marca", "tipo", "qtd", "cat"]) delete alvo[campo];
+    Object.assign(alvo, { nome }, extra);
+  } else {
+    destaque = { nome, comprado: false, ...extra };
+    itens.push(destaque);
+  }
   salvar(); render();
   return "";
 }
+const adicionar = (texto, extra = {}) => salvarItem(null, { nome: texto, ...extra });
 
 function marcar(item, comprado) {
   if (!itens.includes(item) || item.comprado === comprado) return;
@@ -460,7 +531,7 @@ function renderCategorias() {
   const box = document.getElementById("cats");
   box.replaceChildren();
   const contagem = {};
-  for (const i of itens) if (!i.comprado) contagem[info(i.nome).cat] = (contagem[info(i.nome).cat] || 0) + 1;
+  for (const i of itens) if (!i.comprado) contagem[visual(i).cat] = (contagem[visual(i).cat] || 0) + 1;
   for (const [nome, c] of Object.entries(CATEGORIAS)) {
     if (nome === "Outros") continue;
     const b = el("button", { className: "cat", type: "button" }, icone(c.e, 52), nome);
@@ -469,6 +540,9 @@ function renderCategorias() {
     b.addEventListener("click", () => abrirCategoria(nome));
     box.append(b);
   }
+  const outro = el("button", { className: "cat cat-outro", type: "button" }, icone("🏷️", 52), "Outro produto");
+  outro.addEventListener("click", () => abrirEditor(null));
+  box.append(outro);
 }
 
 function renderSugestoes() {
@@ -508,17 +582,19 @@ function renderLista(pendentes, comprados, total) {
     ul.append(el("li", { className: "vazio" }, icone(e, 64), el("b", { textContent: t }), s));
   }
   for (const item of visiveis) {
-    const { e, cat } = info(item.nome);
+    const { e, cat } = visual(item);
     const cb = el("input", { type: "checkbox", className: "check", checked: item.comprado });
+    cb.setAttribute("aria-label", `Comprado: ${item.nome}`);
     cb.addEventListener("change", () => marcar(item, cb.checked));
     const ic = el("span", { className: "item-ic" }, icone(e, 34));
     ic.style.setProperty("--c", CATEGORIAS[cat].c);
+    const corpo = el("button", { className: "item-corpo", type: "button", title: "Editar marca, tipo e quantidade" },
+      ic, el("span", { className: "item-txt" }, el("b", { textContent: item.nome }), el("small", { textContent: detalhes(item) || cat })));
+    corpo.addEventListener("click", () => abrirEditor(item));
     const x = el("button", { className: "remover", textContent: "×", type: "button" });
     x.setAttribute("aria-label", `Remover ${item.nome}`);
     x.addEventListener("click", () => remover(item));
-    ul.append(el("li", { className: (item.comprado ? "comprado " : "") + (item === destaque ? "anima" : "") },
-      el("label", {}, cb, ic, el("span", { className: "item-txt" }, el("b", { textContent: item.nome }), el("small", { textContent: cat }))),
-      x));
+    ul.append(el("li", { className: (item.comprado ? "comprado " : "") + (item === destaque ? "anima" : "") }, cb, corpo, x));
   }
 }
 
@@ -568,7 +644,7 @@ function renderGaveta() {
   const box = document.getElementById("sheet-opcoes");
   box.replaceChildren();
   const c = CATEGORIAS[categoriaAberta];
-  const extras = itens.filter(i => info(i.nome).cat === categoriaAberta && !c.comuns.some(n => norm(n) === norm(i.nome))).map(i => i.nome);
+  const extras = itens.filter(i => visual(i).cat === categoriaAberta && !c.comuns.some(n => norm(n) === norm(i.nome))).map(i => i.nome);
   for (const nome of [...c.comuns, ...extras]) {
     const item = itens.find(i => norm(i.nome) === norm(nome));
     const b = el("button", { className: "opcao", type: "button" }, icone(info(nome).e, 40), nome);
@@ -579,7 +655,49 @@ function renderGaveta() {
 }
 function fecharGaveta() { document.getElementById("sheet").hidden = true; categoriaAberta = null; }
 document.querySelectorAll("[data-fechar]").forEach(b => b.addEventListener("click", fecharGaveta));
-document.addEventListener("keydown", e => { if (e.key === "Escape" && categoriaAberta) fecharGaveta(); });
+
+/* ---------- Ficha do produto (marca, tipo, quantidade, categoria) ---------- */
+let editando = null;
+let catManual = false; // depois que o usuário escolhe a categoria, digitar o nome não muda mais
+const ed = id => document.getElementById("ed-" + id);
+const edCats = document.getElementById("ed-cats");
+for (const [nome, c] of Object.entries(CATEGORIAS)) {
+  const r = el("input", { type: "radio", name: "ed-cat", value: nome });
+  r.addEventListener("change", () => { catManual = true; mostrarCatEditor(nome); });
+  const chip = el("span", {}, icone(c.e, 22), nome);
+  chip.style.setProperty("--c", c.c);
+  edCats.append(el("label", {}, r, chip));
+}
+function mostrarCatEditor(cat) {
+  for (const r of edCats.querySelectorAll("input")) r.checked = r.value === cat;
+  document.getElementById("editor-ic").replaceChildren(icone(visual({ nome: ed("nome").value, cat }).e, 40));
+}
+function abrirEditor(item) {
+  editando = item;
+  catManual = !!item?.cat;
+  for (const campo of ["nome", "marca", "tipo", "qtd"]) ed(campo).value = item?.[campo] || "";
+  ed("msg").textContent = "";
+  ed("remover").hidden = !item;
+  document.getElementById("editor-tit").textContent = item ? "Editar produto" : "Novo produto";
+  mostrarCatEditor(item ? visual(item).cat : "Outros");
+  document.getElementById("editor").hidden = false;
+  ed("nome").focus();
+}
+function fecharEditor() { document.getElementById("editor").hidden = true; editando = null; }
+ed("nome").addEventListener("input", () => { if (!catManual) mostrarCatEditor(info(ed("nome").value).cat); });
+document.getElementById("form-editor").addEventListener("submit", e => {
+  e.preventDefault();
+  const dados = { cat: edCats.querySelector("input:checked")?.value };
+  for (const campo of ["nome", "marca", "tipo", "qtd"]) dados[campo] = ed(campo).value;
+  const erro = salvarItem(editando, dados);
+  if (erro) ed("msg").textContent = erro; else fecharEditor();
+});
+ed("remover").addEventListener("click", () => { remover(editando); fecharEditor(); });
+document.querySelectorAll("[data-fechar-editor]").forEach(b => b.addEventListener("click", fecharEditor));
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!document.getElementById("editor").hidden) fecharEditor(); else if (categoriaAberta) fecharGaveta();
+});
 
 /* ---------- Navegação e formulários ---------- */
 function ir(v) {

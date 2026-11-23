@@ -7,6 +7,8 @@ A lista de compras da família, feita em um único arquivo HTML: HTML, CSS e Jav
 - Guarda um histórico de quantas vezes cada item foi comprado. Desmarcar um item desfaz a contagem.
 - Sugere até 8 dos itens mais comprados que não estão na lista. Um clique adiciona o item de volta.
 - Monta um cardápio simples com os itens da lista e mostra o que falta para cada prato. Um toque adiciona o que falta.
+- Cada item pode ter marca, tipo/especificação (ex.: 110 V, integral) e quantidade: toque no item para abrir a ficha. Dá para ter o mesmo produto com marcas diferentes.
+- "Outro produto" cadastra qualquer coisa (ex.: liquidificador) escolhendo a categoria, incluindo Casa & Eletro e Pet.
 - Categorias coloridas (frutas, padaria, limpeza…) abrem uma gaveta para adicionar os itens mais comuns com um toque.
 - Visual de aplicativo de celular, com menu embaixo (Início, Lista e Cardápio) e abas Comprar / Comprados / Todos.
 
